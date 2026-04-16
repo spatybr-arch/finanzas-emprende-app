@@ -1,0 +1,38 @@
+-- =============================================
+-- MISFINANZAS — Script de base de datos
+-- Ejecuta esto en Supabase > SQL Editor
+-- =============================================
+
+-- 1. Tabla de perfiles (datos del emprendedor)
+create table perfiles (
+  id uuid references auth.users primary key,
+  nombre text,
+  negocio text,
+  email text,
+  created_at timestamp with time zone default now()
+);
+
+-- 2. Tabla de movimientos financieros
+create table movimientos (
+  id bigserial primary key,
+  user_id uuid references auth.users not null,
+  tipo text not null check (tipo in ('ing', 'cos', 'gas')),
+  detalle text not null,
+  monto numeric(12,2) not null check (monto > 0),
+  cat text not null,
+  fecha date not null,
+  created_at timestamp with time zone default now()
+);
+
+-- 3. Seguridad: cada usuario solo ve sus propios datos (RLS)
+alter table perfiles enable row level security;
+alter table movimientos enable row level security;
+
+create policy "Perfil propio" on perfiles
+  for all using (auth.uid() = id);
+
+create policy "Movimientos propios" on movimientos
+  for all using (auth.uid() = user_id);
+
+-- 4. Índice para consultas rápidas por mes
+create index idx_movimientos_fecha on movimientos (user_id, fecha desc);
