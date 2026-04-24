@@ -2,82 +2,74 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Control de Finanzas</title>
+    <title>Finanzas Emprende</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="config.js"></script>
     <style>
-        body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; margin: 0; padding: 20px; display: flex; justify-content: center; }
-        .container { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); width: 100%; max-width: 400px; }
-        input, select { width: 100%; margin-bottom: 15px; padding: 10px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; }
-        button { width: 100%; padding: 12px; background: #007bff; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; }
-        button:hover { background: #0056b3; }
-        .hidden { display: none; }
-        .balance-card { background: #e7f3ff; padding: 15px; border-radius: 8px; text-align: center; margin-bottom: 20px; }
+        body { font-family: sans-serif; background: #f4f4f9; padding: 20px; display: flex; justify-content: center; }
+        .box { background: white; padding: 25px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); width: 100%; max-width: 350px; }
+        input, select, button { width: 100%; padding: 12px; margin: 8px 0; border-radius: 5px; border: 1px solid #ccc; box-sizing: border-box; }
+        button { background: #007bff; color: white; font-weight: bold; cursor: pointer; border: none; }
+        .hidden { display: none !important; }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <div id="auth-form">
-        <h2 style="text-align:center">Control de Finanzas</h2>
-        <input type="email" id="email" placeholder="Correo electrónico">
+<div class="box">
+    <div id="login-section">
+        <h2>Iniciar Sesión</h2>
+        <input type="email" id="email" placeholder="Correo">
         <input type="password" id="password" placeholder="Contraseña">
-        <button onclick="signIn()">Iniciar Sesión</button>
+        <button onclick="entrar()">Ingresar</button>
     </div>
 
-    <div id="panel-financiero" class="hidden">
-        <h2>Panel de Control</h2>
-        <div class="balance-card">
-            <small>Estado actual</small>
-            <h3 id="user-email">Cargando...</h3>
-        </div>
-        
-        <h4>Registrar Movimiento</h4>
+    <div id="panel-section" class="hidden">
+        <h2 id="saludo">Hola</h2>
+        <hr>
         <select id="tipo">
             <option value="ing">Ingreso (+)</option>
             <option value="gas">Gasto (-)</option>
-            <option value="cos">Costo (-)</option>
         </select>
-        <input type="text" id="detalle" placeholder="Detalle (ej: Venta de producto)">
-        <input type="number" id="monto" placeholder="Monto (ej: 50000)">
-        <button style="background: #28a745;" onclick="registrar()">Guardar Movimiento</button>
-        <br><br>
-        <button style="background: #dc3545;" onclick="location.reload()">Cerrar Sesión</button>
+        <input type="text" id="detalle" placeholder="¿En qué?">
+        <input type="number" id="monto" placeholder="Valor">
+        <button style="background: #28a745;" onclick="guardar()">Guardar Movimiento</button>
+        <button style="background: #6c757d;" onclick="location.reload()">Salir</button>
     </div>
 </div>
 
 <script>
-    async function signIn() {
-        const email = document.getElementById('email').value;
-        const password = document.getElementById('password').value;
-        const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+    async function entrar() {
+        const e = document.getElementById('email').value;
+        const p = document.getElementById('password').value;
+        
+        const { data, error } = await supabaseClient.auth.signInWithPassword({ email: e, password: p });
 
         if (error) {
             alert("Error: " + error.message);
         } else {
-            document.getElementById('auth-form').classList.add('hidden');
-            document.getElementById('panel-financiero').classList.remove('hidden');
-            document.getElementById('user-email').innerText = data.user.email;
+            // Esto es lo que hace que aparezca el panel
+            document.getElementById('login-section').classList.add('hidden');
+            document.getElementById('panel-section').classList.remove('hidden');
+            document.getElementById('saludo').innerText = "Bienvenido: " + data.user.email;
         }
     }
 
-    async function registrar() {
-        const user = (await supabaseClient.auth.getUser()).data.user;
-        const mov = {
+    async function guardar() {
+        const { data: { user } } = await supabaseClient.auth.getUser();
+        const m = {
             user_id: user.id,
             tipo: document.getElementById('tipo').value,
             detalle: document.getElementById('detalle').value,
             monto: parseFloat(document.getElementById('monto').value),
-            fecha: new Date().toISOString().split('T')[0]
+            fecha: new Date().toISOString()
         };
 
-        const { error } = await supabaseClient.from('movimientos').insert([mov]);
+        const { error } = await supabaseClient.from('movimientos').insert([m]);
         if (error) alert("Error al guardar: " + error.message);
         else {
-            alert("¡Movimiento guardado!");
-            document.getElementById('detalle').value = '';
-            document.getElementById('monto').value = '';
+            alert("✅ ¡Guardado con éxito!");
+            document.getElementById('detalle').value = "";
+            document.getElementById('monto').value = "";
         }
     }
 </script>
