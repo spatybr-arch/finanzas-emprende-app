@@ -3,35 +3,84 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Finanzas para Emprendedores</title>
+    <title>Control de Finanzas</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="config.js"></script>
     <style>
-        body { font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; background: #f0f2f5; }
-        .card { background: white; padding: 2rem; border-radius: 8px; shadow: 0 2px 4px rgba(0,0,0,0.1); width: 300px; }
-        input { width: 100%; margin-bottom: 10px; padding: 8px; box-sizing: border-box; }
-        button { width: 100%; padding: 10px; background: #3b82f6; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; margin: 0; padding: 20px; display: flex; justify-content: center; }
+        .container { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); width: 100%; max-width: 400px; }
+        input, select { width: 100%; margin-bottom: 15px; padding: 10px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; }
+        button { width: 100%; padding: 12px; background: #007bff; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; }
+        button:hover { background: #0056b3; }
+        .hidden { display: none; }
+        .balance-card { background: #e7f3ff; padding: 15px; border-radius: 8px; text-align: center; margin-bottom: 20px; }
     </style>
 </head>
 <body>
-    <div class="card" id="auth-form">
-        <h2>Control de Finanzas</h2>
+
+<div class="container">
+    <div id="auth-form">
+        <h2 style="text-align:center">Control de Finanzas</h2>
         <input type="email" id="email" placeholder="Correo electrónico">
         <input type="password" id="password" placeholder="Contraseña">
         <button onclick="signIn()">Iniciar Sesión</button>
-        <p style="text-align:center; font-size: 12px;">¿No tienes cuenta? Regístrate en Supabase</p>
     </div>
 
-    <script>
-        async function signIn() {
-            const email = document.getElementById('email').value;
-            const password = document.getElementById('password').value;
-            const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
-            if (error) alert("Error: " + error.message);
-            else alert("¡Bienvenido emprendedor!");
-            document.getElementById('auth-form').style.display = 'none';
-        document.getElementById('panel-financiero').style.display = 'block';
+    <div id="panel-financiero" class="hidden">
+        <h2>Panel de Control</h2>
+        <div class="balance-card">
+            <small>Estado actual</small>
+            <h3 id="user-email">Cargando...</h3>
+        </div>
+        
+        <h4>Registrar Movimiento</h4>
+        <select id="tipo">
+            <option value="ing">Ingreso (+)</option>
+            <option value="gas">Gasto (-)</option>
+            <option value="cos">Costo (-)</option>
+        </select>
+        <input type="text" id="detalle" placeholder="Detalle (ej: Venta de producto)">
+        <input type="number" id="monto" placeholder="Monto (ej: 50000)">
+        <button style="background: #28a745;" onclick="registrar()">Guardar Movimiento</button>
+        <br><br>
+        <button style="background: #dc3545;" onclick="location.reload()">Cerrar Sesión</button>
+    </div>
+</div>
+
+<script>
+    async function signIn() {
+        const email = document.getElementById('email').value;
+        const password = document.getElementById('password').value;
+        const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+
+        if (error) {
+            alert("Error: " + error.message);
+        } else {
+            document.getElementById('auth-form').classList.add('hidden');
+            document.getElementById('panel-financiero').classList.remove('hidden');
+            document.getElementById('user-email').innerText = data.user.email;
         }
-    </script>
+    }
+
+    async function registrar() {
+        const user = (await supabaseClient.auth.getUser()).data.user;
+        const mov = {
+            user_id: user.id,
+            tipo: document.getElementById('tipo').value,
+            detalle: document.getElementById('detalle').value,
+            monto: parseFloat(document.getElementById('monto').value),
+            fecha: new Date().toISOString().split('T')[0]
+        };
+
+        const { error } = await supabaseClient.from('movimientos').insert([mov]);
+        if (error) alert("Error al guardar: " + error.message);
+        else {
+            alert("¡Movimiento guardado!");
+            document.getElementById('detalle').value = '';
+            document.getElementById('monto').value = '';
+        }
+    }
+</script>
+
 </body>
 </html>
