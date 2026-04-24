@@ -1,38 +1,35 @@
--- =============================================
--- MISFINANZAS — Script de base de datos
--- Ejecuta esto en Supabase > SQL Editor
--- =============================================
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Finanzas para Emprendedores</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="config.js"></script>
+    <style>
+        body { font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; background: #f0f2f5; }
+        .card { background: white; padding: 2rem; border-radius: 8px; shadow: 0 2px 4px rgba(0,0,0,0.1); width: 300px; }
+        input { width: 100%; margin-bottom: 10px; padding: 8px; box-sizing: border-box; }
+        button { width: 100%; padding: 10px; background: #3b82f6; color: white; border: none; border-radius: 4px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <div class="card" id="auth-form">
+        <h2>Control de Finanzas</h2>
+        <input type="email" id="email" placeholder="Correo electrónico">
+        <input type="password" id="password" placeholder="Contraseña">
+        <button onclick="signIn()">Iniciar Sesión</button>
+        <p style="text-align:center; font-size: 12px;">¿No tienes cuenta? Regístrate en Supabase</p>
+    </div>
 
--- 1. Tabla de perfiles (datos del emprendedor)
-create table perfiles (
-  id uuid references auth.users primary key,
-  nombre text,
-  negocio text,
-  email text,
-  created_at timestamp with time zone default now()
-);
-
--- 2. Tabla de movimientos financieros
-create table movimientos (
-  id bigserial primary key,
-  user_id uuid references auth.users not null,
-  tipo text not null check (tipo in ('ing', 'cos', 'gas')),
-  detalle text not null,
-  monto numeric(12,2) not null check (monto > 0),
-  cat text not null,
-  fecha date not null,
-  created_at timestamp with time zone default now()
-);
-
--- 3. Seguridad: cada usuario solo ve sus propios datos (RLS)
-alter table perfiles enable row level security;
-alter table movimientos enable row level security;
-
-create policy "Perfil propio" on perfiles
-  for all using (auth.uid() = id);
-
-create policy "Movimientos propios" on movimientos
-  for all using (auth.uid() = user_id);
-
--- 4. Índice para consultas rápidas por mes
-create index idx_movimientos_fecha on movimientos (user_id, fecha desc);
+    <script>
+        async function signIn() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+            if (error) alert("Error: " + error.message);
+            else alert("¡Bienvenido emprendedor!");
+        }
+    </script>
+</body>
+</html>
