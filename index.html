@@ -29,6 +29,8 @@
             const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
             if (error) alert("Error: " + error.message);
             else alert("¡Bienvenido emprendedor!");
+            document.getElementById('auth-form').style.display = 'none';
+        document.getElementById('panel-financiero').style.display = 'block';
         }
     </script>
 </body>
