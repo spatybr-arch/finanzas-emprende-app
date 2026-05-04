@@ -27,7 +27,14 @@
         .monto-grande { font-size: 28px; font-weight: bold; margin: 10px 0; }
         .grid-resumen { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-top: 15px; }
         .resumen-item { font-size: 14px; }
-        .item-list { text-align: left; border-bottom: 1px solid #eee; padding: 10px 0; display: flex; justify-content: space-between; }
+        
+        /* DISEÑO DE HISTORIAL MEJORADO */
+        .item-list { text-align: left; border-bottom: 1px solid #eee; padding: 15px 0; display: flex; justify-content: space-between; align-items: center; }
+        .item-info { display: flex; flex-direction: column; }
+        .item-desc { font-weight: bold; color: #333; font-size: 16px; text-transform: capitalize; }
+        .item-date { font-size: 12px; color: #888; margin-top: 4px; }
+        .item-value { font-weight: bold; font-size: 16px; }
+        .btn-delete { background: #fee; color: #e74c3c; border: none; padding: 5px 8px; border-radius: 5px; cursor: pointer; font-size: 11px; margin-left: 10px; }
 
         input, select, .btn-main { width: 100%; padding: 12px; margin-bottom: 15px; border-radius: 8px; border: 1px solid #ddd; box-sizing: border-box; }
         .btn-main { background: #2ecc71; color: white; border: none; font-weight: bold; cursor: pointer; font-size: 16px; }
@@ -56,23 +63,27 @@
             <span class="nav-link" id="tab-historial" onclick="showTab('historial')">Historial</span>
         </div>
 
+        <!-- VISTA: REGISTRAR -->
         <div id="view-registrar">
             <div class="type-buttons">
                 <button class="type-btn active-ingreso" id="btn-ing" onclick="setType('ingreso')">+ Ingreso</button>
                 <button class="type-btn" id="btn-cos" onclick="setType('costo')">- Costo</button>
                 <button class="type-btn" id="btn-gas" onclick="setType('gasto')">- Gasto</button>
             </div>
-            <input type="text" id="descripcion" placeholder="Descripción (ej: Venta zapatos)">
+            <input type="text" id="descripcion" placeholder="¿Qué registras? (ej: Venta de Pastel)">
             <input type="number" id="monto" placeholder="Monto $">
             <select id="categoria">
                 <option value="Ventas">Ventas</option>
                 <option value="Insumos">Insumos</option>
-                <option value="Varios">Varios</option>
+                <option value="Servicios">Servicios</option>
+                <option value="Otros">Otros</option>
             </select>
             <input type="date" id="fecha">
             <button class="btn-main" id="btn-save" onclick="guardar()">Guardar Movimiento</button>
+            <p style="font-size: 12px; color: #888;">* Si cometes un error, puedes borrarlo en la pestaña Historial.</p>
         </div>
 
+        <!-- VISTA: RESUMEN -->
         <div id="view-resumen" class="hidden">
             <div class="balance-card">
                 <small>Utilidad neta del mes</small>
@@ -85,6 +96,7 @@
             </div>
         </div>
 
+        <!-- VISTA: HISTORIAL -->
         <div id="view-historial" class="hidden">
             <div id="lista-movimientos" style="margin-top:20px;">
                 <small>Cargando movimientos...</small>
@@ -109,13 +121,10 @@
     function showTab(tab) {
         document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
         document.getElementById('tab-'+tab).classList.add('active');
-        
         document.getElementById('view-registrar').classList.add('hidden');
         document.getElementById('view-resumen').classList.add('hidden');
         document.getElementById('view-historial').classList.add('hidden');
-        
         document.getElementById('view-'+tab).classList.remove('hidden');
-        
         if(tab === 'resumen') cargarResumen();
         if(tab === 'historial') cargarHistorial();
     }
@@ -125,7 +134,7 @@
             email: document.getElementById('email').value,
             password: document.getElementById('password').value
         });
-        if(error) alert(error.message);
+        if(error) alert("Error: " + error.message);
         else {
             document.getElementById('auth-section').classList.add('hidden');
             document.getElementById('main-app').classList.remove('hidden');
@@ -137,24 +146,24 @@
         const user = (await supabaseClient.auth.getUser()).data.user;
         const mov = {
             user_id: user.id,
-            tipo: currentType.substring(0,3), // 'ing', 'cos', 'gas'
-            detalle: document.getElementById('descripcion').value,
+            tipo: currentType.substring(0,3), 
+            detalle: document.getElementById('descripcion').value, // Aseguramos que use 'detalle'
             monto: parseFloat(document.getElementById('monto').value),
             cat: document.getElementById('categoria').value,
             fecha: document.getElementById('fecha').value
         };
 
         const { error } = await supabaseClient.from('movimientos').insert([mov]);
-        if(error) alert(error.message);
+        if(error) alert("Error al guardar: " + error.message);
         else {
-            alert("¡Guardado!");
+            alert("✅ ¡Guardado con éxito!");
             document.getElementById('descripcion').value = "";
             document.getElementById('monto').value = "";
         }
     }
 
     async function cargarResumen() {
-        const { data, error } = await supabaseClient.from('movimientos').select('monto, tipo');
+        const { data } = await supabaseClient.from('movimientos').select('monto, tipo');
         if(data) {
             let i = 0, c = 0, g = 0;
             data.forEach(m => {
@@ -170,16 +179,35 @@
     }
 
     async function cargarHistorial() {
-        const { data, error } = await supabaseClient.from('movimientos').select('*').order('fecha', {ascending: false});
+        const { data } = await supabaseClient.from('movimientos').select('*').order('fecha', {ascending: false});
         const lista = document.getElementById('lista-movimientos');
-        lista.innerHTML = data.length ? "" : "Sin movimientos registrados";
+        lista.innerHTML = data && data.length ? "" : "No hay movimientos.";
+        
         data.forEach(m => {
-            const color = m.tipo === 'ing' ? 'green' : (m.tipo === 'cos' ? 'orange' : 'red');
-            lista.innerHTML += `<div class="item-list">
-                <span><b>${m.detalle}</b><br><small>${m.fecha}</small></span>
-                <span style="color:${color}"><b>${m.tipo === 'ing' ? '+' : '-'}$${m.monto.toLocaleString()}</b></span>
-            </div>`;
+            const color = m.tipo === 'ing' ? '#2ecc71' : (m.tipo === 'cos' ? '#f1c40f' : '#e74c3c');
+            const simbolo = m.tipo === 'ing' ? '+' : '-';
+            
+            // Usamos 'm.detalle' porque así lo registramos en la base de datos
+            lista.innerHTML += `
+                <div class="item-list">
+                    <div class="item-info">
+                        <span class="item-desc">${m.detalle || 'Sin descripción'}</span>
+                        <span class="item-date">${m.fecha}</span>
+                    </div>
+                    <div style="display: flex; align-items: center;">
+                        <span class="item-value" style="color:${color}">${simbolo} $${m.monto.toLocaleString()}</span>
+                        <button class="btn-delete" onclick="eliminarMovimiento(${m.id})">Borrar</button>
+                    </div>
+                </div>`;
         });
+    }
+
+    async function eliminarMovimiento(id) {
+        if(confirm("¿Seguro que quieres borrar este registro para corregirlo?")) {
+            const { error } = await supabaseClient.from('movimientos').delete().eq('id', id);
+            if(error) alert("Error al borrar");
+            else cargarHistorial();
+        }
     }
 </script>
 </body>
